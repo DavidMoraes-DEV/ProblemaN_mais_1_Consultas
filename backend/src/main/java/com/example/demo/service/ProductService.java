@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -40,8 +42,13 @@ public class ProductService {
 		return list.stream().map(x -> new ProductDTO(x)).collect(Collectors.toList());
 		*/
 		
-		//Solução para retornar o resultado PAGINADO:
-		Page<Product> list = repository.findProductsCategories(pageRequest);
-		return list.map(x -> new ProductDTO(x));
+		//Solução para retornar o resultado PAGINADO utilizando IN do SQL:
+		Page<Product> page = repository.findAll(pageRequest);
+		
+		//Chamada seca para forçar o JPA a buscar od produtos relacionados com suas categorias e instanciar em memória para quando o DTO for buscar essas categorias elas já estejam em memória(JPA faz cache dos objetos)
+		//Esse armazenamento em memória é conhecido como MAPA DE IDENTIDADE que é feito pelas ferramentas ORM (Não busca no banco de dados os mesmos dados mais de uma vez no mesmo contexto
+		//Então quando o JPA for buscar a relação das categorias com os produtos o JPA vai identificar que esses objetos já estão em memória então ele NÃO VAI MAIS NO BANCO DE DADOS resolvendo o problema da N+1 Consultas
+		repository.findProductsCategories(page.stream().collect(Collectors.toList()));		
+		return page.map(x -> new ProductDTO(x));
 	}
 }
