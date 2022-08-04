@@ -1,7 +1,9 @@
 package com.example.demo.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +31,14 @@ public class ProductService {
 	 		- Tudo isso é uma BOA PRÁTICA		
 	*/
 	@Transactional(readOnly = true)
-	public Page<ProductDTO> find(PageRequest pageRequest) {
-		Page<Product> list = repository.findAll(pageRequest);
-		return list.map(x -> new ProductDTO(x));
+	public List<ProductDTO> find(PageRequest pageRequest) {
+		/*
+		* Para resolver o problema ao invés de utilizar o findAll do repository, utilizamos uma consulta personalizada(findProductsCateogires()) utilizando o JOIN FETCH
+			- Dessa forma a consulta irá no banco apenas 1 vez para buscar os produtos e depois irá apenas mais 1 vez para buscar as categorias de cada produtos
+			- Porém na consulta dessa forma NÃO esta paginada, retorna todos os produtos vinculados a suas categorias SEM PAGINAÇÃO
+			- Nesse caso já não esta mais acontecendo o problema da N+1 Consultas, mais ainda tem o problema de ela não estar paginada
+		*/
+		List<Product> list = repository.findProductsCategories();
+		return list.stream().map(x -> new ProductDTO(x)).collect(Collectors.toList());
 	}
 }
