@@ -1,0 +1,75 @@
+Projeto inicial para o problema das N + 1 Consultas:
+
+No estado inicial do projeto ao roda-lo e realizar uma requisição GET paginada, o hibernate faz a seguinte consulta SQL no banco de dados:
+
+Hibernate: 
+    select
+        product0_.id as id1_1_,
+        product0_.name as name2_1_ 
+    from
+        tb_product product0_ limit ?
+Hibernate: 
+    select
+        count(product0_.id) as col_0_0_ 
+    from
+        tb_product product0_
+Hibernate: 
+    select
+        categories0_.product_id as product_1_2_0_,
+        categories0_.category_id as category2_2_0_,
+        category1_.id as id1_0_1_,
+        category1_.name as name2_0_1_ 
+    from
+        tb_product_category categories0_ 
+    inner join
+        tb_category category1_ 
+            on categories0_.category_id=category1_.id 
+    where
+        categories0_.product_id=?
+Hibernate: 
+    select
+        categories0_.product_id as product_1_2_0_,
+        categories0_.category_id as category2_2_0_,
+        category1_.id as id1_0_1_,
+        category1_.name as name2_0_1_ 
+    from
+        tb_product_category categories0_ 
+    inner join
+        tb_category category1_ 
+            on categories0_.category_id=category1_.id 
+    where
+        categories0_.product_id=?
+Hibernate: 
+    select
+        categories0_.product_id as product_1_2_0_,
+        categories0_.category_id as category2_2_0_,
+        category1_.id as id1_0_1_,
+        category1_.name as name2_0_1_ 
+    from
+        tb_product_category categories0_ 
+    inner join
+        tb_category category1_ 
+            on categories0_.category_id=category1_.id 
+    where
+        categories0_.product_id=?
+Hibernate: 
+    
+    drop table if exists tb_category CASCADE 
+Hibernate: 
+    
+    drop table if exists tb_product CASCADE 
+Hibernate: 
+  
+    drop table if exists tb_product_category CASCADE 
+    
+* Repare que o Hibernate esta fazendo além do SELECT inicial em Products para trazer os produtos paginados
+	- Ele tbm faz mais 3 SELECTS em categorias para buscar as categorias relacionadas a cada produto buscado no GET e isso é o problema:
+		- N+1 Consultas:
+			- Ou seja para buscar N registros tem que ir no banco uma vez (Que é a consulta inicial do product)
+			- E depois tem que ir no banco mais N vezes para buscar os registros relacionados(nesse caso é a relação dos produtos e sua categoria)
+				- Então o problema é que vai uma vez no banco para buscar os produtos
+				- Depois tem que ir no banco novamente para buscar as categorias do produto 1
+				- Depois ir no banco novamente para buscar as categorias do produto 2
+				- Depois do produto 3
+				- E assim por diante dependendo da quantidade de elementos definidos por página
+				- E isso prejudica muito o desempenho da aplicação e da consulta pois terá muitas consultas envolvidas em apenas uma requisição
